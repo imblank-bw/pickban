@@ -3,6 +3,7 @@ const socket = io();
 let team1, team2;
 let currentStep = 0;
 let mapIconCounter = 0; // Counter for top row map icons
+
 const instructions = [
     "1팀: 밴할 맵을 선택해주세요.",
     "2팀: 밴할 맵을 선택해주세요.",
@@ -10,10 +11,12 @@ const instructions = [
     "2팀: 버튼으로 첫번째 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
     "2팀: 두번째 맵을 선택해주세요.",
     "1팀: 버튼으로 두번째 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
-    "1팀: 밴할 맵을 선택해주세요.",
-    "2팀: 밴할 맵을 선택해주세요.",
+    "1팀: 세번째 맵을 선택해주세요.",
+    "2팀: 버튼으로 세번째 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
+    "2팀: 네번째 맵을 선택해주세요.",
+    "1팀: 버튼으로 네번째 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
     "디사이더 맵을 클릭해주세요.",
-    "버튼으로 디사이더 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
+    "1팀: 버튼으로 디사이더 맵에서 시작할 사이드를 선택해주세요. (공격/수비)",
     "맵 밴/픽이 완료되었습니다."
 ];
 
@@ -48,12 +51,12 @@ socket.on('updateTeams', (data) => {
 
 function selectMap(element) {
     if (!mapContainer.classList.contains('disabled')) {
-        let action = (currentStep === 2 || currentStep === 4) ? 'picked' : 'banned';
+        let action = (currentStep === 2 || currentStep === 4 || currentStep === 6 || currentStep === 8) ? 'picked' : 'banned';
         let team;
         if (currentStep === 0 || currentStep === 2 || currentStep === 6) {
-            team = team1; // Team 1 picks first map
-        } else if (currentStep === 1 || currentStep === 4 || currentStep === 7) {
-            team = team2; // Team 2 picks second map
+            team = team1;
+        } else if (currentStep === 1 || currentStep === 4 || currentStep === 8) {
+            team = team2;
         }
         socket.emit('selectMap', { map: element.dataset.map, action, team });
     }
@@ -62,10 +65,10 @@ function selectMap(element) {
 function selectSide(side) {
     if (!sideSelectionContainer.classList.contains('disabled')) {
         let team;
-        if (currentStep === 1 || currentStep === 5 || currentStep === 9) {
-            team = team1; // Team 1 picks first map
-        } else if (currentStep === 3) {
-            team = team2; // Team 2 picks second map
+        if (currentStep === 3 || currentStep === 7 || currentStep === 11) {
+            team = team2;
+        } else if (currentStep === 5 || currentStep === 9) {
+            team = team1;
         }
         socket.emit('selectSide', { side, team });
     }
@@ -73,20 +76,15 @@ function selectSide(side) {
 
 socket.on('mapSelected', (data) => {
     const element = [...document.querySelectorAll('.map-icon')].find(el => el.dataset.map === data.map);
-    if (data.action === 'picked') {
+    if (data.action === 'picked' || currentStep === 10) {
         element.classList.add('picked');
         pickSound.play();
-    } else if (currentStep === 8) {
-        element.classList.add('picked');
-        pickSound.play();
-    }
-    else {
+    } else {
         element.classList.add('banned');
         banSound.play();
     }
     updateBottomUI(data.map, data.action, data.team);
     currentStep++;
-
     updateInstruction();
 });
 
@@ -111,7 +109,7 @@ function updateInstruction() {
 }
 
 function toggleContainers() {
-    if (currentStep === 3 || currentStep === 5 || currentStep === 9) {
+    if (currentStep === 3 || currentStep === 5 || currentStep === 7 || currentStep === 9 || currentStep === 11) {
         mapContainer.classList.add('disabled');
         sideSelectionContainer.classList.remove('disabled');
     } else {
@@ -121,7 +119,6 @@ function toggleContainers() {
 }
 
 function updateBottomUI(map, action, team) {
-    // Update map icons in the top row
     if (map && mapIconCounter < 7) {
         const stepElement = document.getElementById(`step${mapIconCounter + 1}`);
         if (stepElement) {
@@ -139,25 +136,25 @@ function updateBottomUI(map, action, team) {
         }
     }
 
-    // Update side icons in the bottom row
-    if (action && (currentStep === 3 || currentStep === 5 || currentStep === 8 || currentStep === 9)) {
+    if (action && (currentStep === 3 || currentStep === 5 || currentStep === 7 || currentStep === 9 || currentStep === 11)) {
         let sidePosition;
         if (currentStep === 3) {
-            sidePosition = 3; // 3rd icon for the 4th step
+            sidePosition = 3;
         } else if (currentStep === 5) {
-            sidePosition = 4; // 4th icon for the 6th step
-        } else if (currentStep === 9) { // Change from 8 to 9 for the final step
-            sidePosition = 7; // 8th icon for the final step
+            sidePosition = 4;
+        } else if (currentStep === 7) {
+            sidePosition = 5;
+        } else if (currentStep === 9) {
+            sidePosition = 6;
+        } else if (currentStep === 11) {
+            sidePosition = 7;
         }
 
         if (sidePosition !== undefined) {
             const stepElementNew = document.getElementById(`step${sidePosition}-new`);
             if (stepElementNew) {
-                if (team) {
-                    // Update side icons for other steps
-                    stepElementNew.innerText = `공격/수비: ${action} \n(팀: ${team})`;
-                    stepElementNew.classList.add(action);
-                }
+                stepElementNew.innerText = `공격/수비: ${action} \n(팀: ${team})`;
+                stepElementNew.classList.add(action);
             } else {
                 console.error(`Element with ID step${sidePosition}-new not found`);
             }
